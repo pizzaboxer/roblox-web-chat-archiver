@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+        <style>
+            .btn-primary, .list-group-item.active {
+                background-color: #6f42c1;
+                border-color: #6f42c1;
+            }
+
+            .btn-primary:hover {
+                background-color: #59359a;
+                border-color: #59359a;
+            }
+
+            .btn-primary:active, .btn-primary:focus {
+                background-color: #432874 !important;
+                border-color: #432874 !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="welcome" style="height: 100vh;" class="d-flex align-items-center justify-content-center">
+            <div class="text-center">
+                <h3>Please load an archive file and open a conversation</h3>
+                <button type="button" class="btn btn-primary btn-lg" id="loadFileButton">Load file</button>
+            </div>
+        </div>
+        <div id="stuff" class="row mx-0 d-none">
+            <div class="col-3 px-0">
+                <div class="d-flex flex-column bg-body-tertiary" style="height: 100vh">
+                    <div class="p-3 border-bottom d-flex justify-content-between">
+                        <p class="fs-5 fw-semibold mb-0" id="headertext"></p>
+                    </div>
+                    <div id="conversations" class="list-group list-group-flush" style="overflow-y: scroll">
+                    </div>
+                </div>
+            </div>
+            <div class="col-9 px-0">
+                <div id="messages" class="list-group list-group-flush" style="overflow-y: auto; max-height: 100vh">
+                </div>
+            </div>
+        </div>
+        <div id="templates" class="d-none">
+            <div class="conversation list-group-item list-group-item-action py-3 lh-sm" role="button">
+                <div class="d-flex w-100 align-items-center justify-content-between">
+                    <strong class="mb-1" data-key="title"></strong>
+                    <small class="text-body-secondary" data-key="timestamp"></small>
+                </div>
+                <div class="mb-1 small"><strong class="mb-1"><span data-key="last-message-sender"></span>: </strong><span data-key="last-message-contents"></span></div>
+            </div>
+            <div class="message list-group-item py-3 lh-sm">
+                <div>
+                    <strong class="mb-1" data-key="name"></strong>
+                    <small class="text-body-secondary">  - <span data-key="timestamp"></span></small>
+                </div>
+                <div class="mb-1 small" data-key="message"></div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>    
+        <script>
+            var data = {};
+            const messagesContainer = document.getElementById("messages");
+
+            const reader = new FileReader();
+            const filePicker = document.createElement('input');
+            filePicker.type = 'file';
+
+            document.getElementById("loadFileButton").onclick = function() { 
+                filePicker.click();
+            };
+
+            filePicker.onchange = function(event) { 
+                document.getElementById("welcome").classList.add("d-none");
+                document.getElementById("stuff").classList.remove("d-none");
+                reader.readAsText(event.target.files[0], 'UTF-8');
+            }
+
+            reader.onload = function(event) {                 
+                const file_contents = event.target.result;
+                data = JSON.parse(file_contents);
+
+                headertext.innerHTML = data['people'][data['userId']]['name'];
+
+                convos = Object.keys(data['conversations']).map(function(key) {
+                    return [key, data['conversations'][key]];
+                });
+
+                convos.sort(function(first, second) {
+                    firstTimestamp = Date.parse(first[1]['messages'][0]['sent']);
+                    secondTimestamp = Date.parse(second[1]['messages'][0]['sent']);
+
+                    if (firstTimestamp < secondTimestamp)
+                        return 1;
+
+                    if (firstTimestamp > secondTimestamp)
+                        return -1;
+
+                    return 0;
+                });
+                
+                for (const entry of convos) {
+                    convo = entry[1];
+                    lastMessage = convo['messages'][0];
+                    lastMessageSender = data['people'][lastMessage['senderTargetId']];
+                    lastMessageTimestamp = new Date(Date.parse(lastMessage['sent']));
+                    
+                    var element = populate("conversation", {
+                        "title": convo['title'],
+                        "last-message-sender": lastMessageSender['name'],
+                        "last-message-contents": lastMessage['content'],
+                        "timestamp": lastMessageTimestamp.toLocaleDateString("en-GB")
+                    }, {"data-id": convo['id']});
+
+                    element.onclick = function(event) {
+                        var selected = document.querySelectorAll(".conversation.active")[0];
+
+                        if (selected)
+                            selected.classList.remove("active");
+
+                        selected = event.currentTarget;
+
+                        selected.classList.add("active");
+                        loadConvo(selected.getAttribute("data-id"));
+                    }
+                }
+            }
+
+            function loadConvo(convoId) {
+                messagesContainer.innerHTML = "";
+                var convo = data['conversations'][convoId];
+
+
+                for (message of convo['messages'].toReversed()) {
+                    timestamp = new Date(Date.parse(message['sent']));
+
+                    console.log(message);
+                    console.log(data['people']);
+
+                    userId = message['senderTargetId'];
+                    userName = `Unknown user ID ${userId}`;
+
+                    if (data['people'][userId])
+                        userName = data['people'][userId]['name'];
+
+                    populate("message", {
+                        "name": userName,
+                        "message": message['content'],
+                        "timestamp": timestamp.toLocaleString("en-GB").replace(",", "")
+                    });
+                }
+
+                messagesContainer.scrollTo(0, messagesContainer.scrollHeight);
+            }
+
+            function populate(type, content, attributes) {
+                var template = document.getElementById("templates").getElementsByClassName(type)[0].cloneNode(true);
+
+                for (key in attributes)
+                    template.setAttribute(key, attributes[key]);
+
+                for (key in content)
+                    template.querySelectorAll(`[data-key="${key}"]`)[0].innerHTML = content[key];
+
+                document.getElementById(type + "s").appendChild(template);
+
+                return template;
+            }
+        </script>
+    </body>
+</html>
