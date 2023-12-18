@@ -7,3 +7,5 @@ It's what I made this for, as I wanted to preserve my old chat histories while a
 To archive your chat history, run `app.py`. It will ask you for a .ROBLOSECURITY cookie token, and then generate a archive file in the folder.
 
 To review your chat history, open `viewer.html` and load the archive file that was generated earlier.
+
+![image](https://github.com/pizzaboxer/roblox-web-chat-archiver/assets/41478239/d1cd0fd4-405b-4480-bd15-715eb040bc01)
