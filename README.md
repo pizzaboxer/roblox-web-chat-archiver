@@ -1,5 +1,8 @@
 # Roblox web chat archiver
 
+> [!NOTE]  
+> The archiver app will likely stop working at some point, and I won't fix it when it does. The viewer will always work, so keep it alongside your chat archives if you have any.
+
 This is for if you want to preserve your old Roblox website chat messages with friends in case you either lose access to your account or want to remove them from your friend list.
 
 It's what I made this for, as I wanted to preserve my old chat histories while also wanting to clean up my friend list, as you lose access to your chat history with someone when you unfriend them.
